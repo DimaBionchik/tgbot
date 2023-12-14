@@ -7,70 +7,85 @@ from telebot.types import InputMediaPhoto
 bot = telebot.TeleBot('6321308129:AAF0c8Ej2TL7IZ7QewIZA7EFMWhAQSByNsE');
 
 
-question = {"Когда началась первая мировая?": {"options":["1939","1941","1942","1940"],"correct_answer":"1939" },
-            "Когда закончилась вторая мировая война?": {
-        "options": ["1945", "1944", "1946", "1949"],
-        "correct_answer": "1945"
-    }}
 
+questions = {
+    "Когда началась Вторая мировая война?": {"options": ["1939", "1941", "1942", "1940", "1938"], "correct_answer": 0},
+    "Когда закончилась Вторая мировая война?": {"options": ["1945", "1944", "1946", "1949", "1950"], "correct_answer": 0},
+    "Кто начал Вторую мировую войну?": {"options": ["Германия", "СССР", "Франция", "Великобритания", "Италия"], "correct_answer": 0},
+    "Откуда Том Ям?":{"options":["Таиланд","Шри-Ланка ","Япония","Сингапур"], "correct_answer":0},
+    "Кто из этих известных композиторов был глухим?":{"options":["Бетховен","Моцарт","Бах","Гендель"],"correct_answer":0},
+     "Кто выиграл золотую бутсу по количеству голов на Евро-2016?":{"options":["Антуан Гризманн","Криштиану Роналду"," Гарри Кейн","Роберт Левандовски"], "correct_answer":0}}
 
+user_data = {}
 
-users_data = {}
+@bot.message_handler(commands=['start', 'quiz'])
+def handle_start(message):
+    user_id = message.from_user.id
+    user_data[user_id] = {"score": 0, "current_question": 0}
+    bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}! Давай сыграем в квиз.")
+    send_question(message.chat.id, user_id)
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    if message.text == '/start':
-        bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name} {message.from_user.last_name}")
-        bot.send_message(message.chat.id, f"{message.from_user.first_name}, давай сыграем в игру")
-        bot.send_message(message.chat.id, "Я буду задавать тебе вопросы и буду давать варианты ответа.")
-        bot.send_message(message.chat.id, "За каждый правильный ответ тебе начисляется 1 балл. Удачи!")
-
-
-        current_question_text = "Когда началась первая мировая?"
-        send_question(message.chat.id, current_question_text)
-
-
-@bot.callback_query_handler(func=lambda callback: True)
-def callback_message(call):
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
     user_id = call.from_user.id
+    answer_index = int(call.data)
 
-    if user_id not in users_data:
-        users_data[user_id] = {"score": 0, "current_question": None}
+    if user_id not in user_data:
+        user_data[user_id] = {"score": 0, "current_question": 0}
 
-    current_question_text = users_data[user_id]["current_question"]
+    if "answers" not in user_data[user_id]:
+        user_data[user_id]["answers"] = {"correct": 0, "incorrect": 0}
 
-    question_data = question.get(current_question_text, {"options": [], "correct_answer": None})
-    correct_answer = question_data["correct_answer"]
+    current_question_index = user_data[user_id]["current_question"]
+    if current_question_index < len(questions):
+        question_data = list(questions.values())[current_question_index]
 
-    if call.data == correct_answer:
-        users_data[user_id]["score"] += 1
-        bot.send_message(call.message.chat.id, f"Правильно! Ваш счет: {users_data[user_id]['score']}")
+        if "correct_answer" in question_data:
+            correct_answer_index = question_data["correct_answer"]
 
-    next_question_text = get_next_question(current_question_text)
-    users_data[user_id]["current_question"] = next_question_text
+            if answer_index == correct_answer_index:
+                user_data[user_id]["score"] += 1
+                user_data[user_id]["answers"]["correct"] += 1
+            else:
+                user_data[user_id]["answers"]["incorrect"] += 1
+
+            user_data[user_id]["current_question"] += 1
+            send_question(call.message.chat.id, user_id)
+        else:
+            bot.send_message(call.message.chat.id, "Ошибка: Нет правильного ответа для текущего вопроса.")
 
 
-    send_question(call.message.chat.id, next_question_text)
+def send_question(chat_id, user_id):
+    current_question_index = user_data[user_id]["current_question"]
 
+    if current_question_index < len(questions):
+        question_text, question_data = list(questions.items())[current_question_index]
+        answer_options = question_data["options"]
+        markup = types.InlineKeyboardMarkup(row_width=1)
 
-def get_next_question(current_question_text):
-    if current_question_text == "Когда началась первая мировая?":
-        return "Когда закончилась вторая мировая война?"
+        for i, option in enumerate(answer_options):
+            callback_data = str(i)
+            markup.add(types.InlineKeyboardButton(text=option, callback_data=callback_data))
+
+        bot.send_message(chat_id, f"{question_text}", reply_markup=markup)
     else:
-        return "Когда закончилась вторая мировая война?"
+        total_questions = len(questions)
+        correct_answers = user_data[user_id]["answers"]["correct"]
+        incorrect_answers = user_data[user_id]["answers"]["incorrect"]
+        score = user_data[user_id]["score"]
+        percentage = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+
+        result_message = (
+            f"Игра завершена.\n"
+            f"Правильных ответов: {correct_answers}\n"
+            f"Неправильных ответов: {incorrect_answers}\n"
+            f"Общий счет: {score}\n"
+            f"Процент правильных ответов: {percentage:.2f}%"
+        )
+        bot.send_message(chat_id, result_message)
+        #score = user_data[user_id]["score"]
+        #bot.send_message(chat_id, f"Игра завершена. Ваш счет: {score}")
 
 
-def send_question(chat_id, question_text):
-    question_data = question.get(question_text, {"options": [], "correct_answer": None})
-    answer_options = question_data["options"]
-
-    keybord = types.InlineKeyboardMarkup(row_width=2)
-    for i, option in enumerate(answer_options):
-        button_label = f"Ответ {i + 1}: {option}"
-        keybord.add(types.InlineKeyboardButton(text=button_label, callback_data=str(option)))
-
-    bot.send_message(chat_id, f"{question_text}", reply_markup=keybord)
-
-
-print("Ready")
+print("ready")
 bot.polling(none_stop=True)
