@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from telebot.types import InputMediaPhoto
+import gspread
 
 
 bot = telebot.TeleBot('6321308129:AAF0c8Ej2TL7IZ7QewIZA7EFMWhAQSByNsE');
@@ -9,11 +10,11 @@ bot = telebot.TeleBot('6321308129:AAF0c8Ej2TL7IZ7QewIZA7EFMWhAQSByNsE');
 
 
 questions = {
-    "Когда началась Вторая мировая война?": {"options": ["1939", "1941", "1942", "1940", "1938"], "correct_answer": 0},
+    "Когда началась Вторая мировая война?": {"options": ["1938", "1941", "1942", "1940", "1939"], "correct_answer": 4},
     "Когда закончилась Вторая мировая война?": {"options": ["1945", "1944", "1946", "1949", "1950"], "correct_answer": 0},
     "Кто начал Вторую мировую войну?": {"options": ["Германия", "СССР", "Франция", "Великобритания", "Италия"], "correct_answer": 0},
-    "Откуда Том Ям?":{"options":["Таиланд","Шри-Ланка ","Япония","Сингапур"], "correct_answer":0},
-    "Кто из этих известных композиторов был глухим?":{"options":["Бетховен","Моцарт","Бах","Гендель"],"correct_answer":0},
+    "Откуда Том Ям?":{"options":["Шри-Ланка","Тайланд ","Япония","Сингапур"], "correct_answer":1},
+    "Кто из этих известных композиторов был глухим?":{"options":["Бах","Моцарт","Бетховен","Гендель"],"correct_answer":2},
      "Кто выиграл золотую бутсу по количеству голов на Евро-2016?":{"options":["Антуан Гризманн","Криштиану Роналду"," Гарри Кейн","Роберт Левандовски"], "correct_answer":0}}
 
 user_data = {}
